@@ -10,13 +10,7 @@ This plugin requires Craft CMS 5.11.0 or later, and PHP 8.2 or later.
 
 ## Installation
 
-You can install this plugin from the Plugin Store or with Composer.
-
-#### From the Plugin Store
-
-Go to the Plugin Store in your project’s Control Panel and search for “Twig Scaffold”. Then press “Install”.
-
-#### With Composer
+Twig Scaffold is not yet listed in the Craft Plugin Store, so for now install it with Composer. The package is published on [Packagist](https://packagist.org/packages/johnfmorton/craft-twig-scaffold), so no extra `repositories` entry is needed in your project’s `composer.json`.
 
 Open your terminal and run the following commands:
 
@@ -30,6 +24,8 @@ composer require johnfmorton/craft-twig-scaffold
 # tell Craft to install the plugin
 ./craft plugin/install twig-scaffold
 ```
+
+Once the plugin is listed in the Plugin Store, you will also be able to go to the Plugin Store in your project’s control panel, search for “Twig Scaffold”, and press “Install”.
 
 ## Usage
 
