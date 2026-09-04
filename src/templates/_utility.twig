@@ -1,0 +1,129 @@
+{% import '_includes/forms' as forms %}
+
+<div class="twig-scaffold" data-twig-scaffold>
+    <div class="readable">
+        <p>{{ 'Utility intro'|t('twig-scaffold') }}</p>
+    </div>
+
+    {% if entryTypeOptions is empty %}
+        <p class="light">{{ 'There are no entry types to scaffold yet.'|t('twig-scaffold') }}</p>
+    {% else %}
+        {{ forms.selectField({
+            label: 'Entry type'|t('twig-scaffold'),
+            instructions: 'Entry type instructions'|t('twig-scaffold'),
+            id: 'twig-scaffold-entry-type',
+            name: 'entryTypeId',
+            options: entryTypeOptions,
+            class: 'twig-scaffold-entry-type',
+        }) }}
+
+        <div data-twig-scaffold-matrix-mode>
+            {{ forms.radioGroupField({
+                label: 'Matrix fields'|t('twig-scaffold'),
+                instructions: 'Matrix mode instructions'|t('twig-scaffold'),
+                id: 'twig-scaffold-matrix-mode',
+                name: 'matrixMode',
+                options: [
+                    { value: 'inline', label: 'Inline loops'|t('twig-scaffold') },
+                    { value: 'partials', label: 'Partial templates'|t('twig-scaffold') },
+                ],
+                value: 'inline',
+            }) }}
+        </div>
+
+        <div class="buttons">
+            <button type="button" class="btn submit" data-twig-scaffold-generate>{{ 'Generate Twig'|t('twig-scaffold') }}</button>
+        </div>
+
+        <div class="hidden" data-twig-scaffold-result>
+            <hr>
+            <div class="field">
+                <div class="heading">
+                    <label for="twig-scaffold-output">{{ 'Generated template'|t('twig-scaffold') }}</label>
+                </div>
+                <div class="instructions">
+                    <p data-twig-scaffold-hint></p>
+                </div>
+                <div class="input">
+                    <textarea id="twig-scaffold-output" class="text code fullwidth" rows="24" readonly spellcheck="false" data-twig-scaffold-output></textarea>
+                </div>
+            </div>
+            <div class="buttons">
+                <button type="button" class="btn" data-twig-scaffold-copy>{{ 'Copy to clipboard'|t('twig-scaffold') }}</button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% js %}
+(function() {
+    var root = document.querySelector('[data-twig-scaffold]');
+    var generate = root && root.querySelector('[data-twig-scaffold-generate]');
+    if (!generate) {
+        return;
+    }
+
+    var select = root.querySelector('.twig-scaffold-entry-type select');
+    var result = root.querySelector('[data-twig-scaffold-result]');
+    var output = root.querySelector('[data-twig-scaffold-output]');
+    var hint = root.querySelector('[data-twig-scaffold-hint]');
+    var copy = root.querySelector('[data-twig-scaffold-copy]');
+
+    var messages = {
+        copied: {{ 'Copied to clipboard.'|t('twig-scaffold')|json_encode|raw }},
+        copyFailed: {{ 'Could not copy. Select the text and copy it yourself.'|t('twig-scaffold')|json_encode|raw }},
+        generateFailed: {{ 'Could not generate the template.'|t('twig-scaffold')|json_encode|raw }}
+    };
+
+    function matrixMode() {
+        var checked = root.querySelector('[data-twig-scaffold-matrix-mode] input[type="radio"]:checked');
+        return checked ? checked.value : 'inline';
+    }
+
+    generate.addEventListener('click', function() {
+        generate.classList.add('loading');
+        generate.disabled = true;
+
+        Craft.sendActionRequest('POST', 'twig-scaffold/scaffold/generate', {
+            data: { entryTypeId: select.value, matrixMode: matrixMode() }
+        })
+            .then(function(response) {
+                var twig = response.data.twig || '';
+                output.value = twig;
+                output.rows = Math.min(Math.max(twig.split('\n').length, 8), 60);
+                hint.textContent = response.data.hint || '';
+                result.classList.remove('hidden');
+                result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            })
+            .catch(function(error) {
+                var message = (error.response && error.response.data && error.response.data.message) || error.message || messages.generateFailed;
+                Craft.cp.displayError(message);
+            })
+            .finally(function() {
+                generate.classList.remove('loading');
+                generate.disabled = false;
+            });
+    });
+
+    copy.addEventListener('click', function() {
+        var fallback = function() {
+            output.focus();
+            output.select();
+            try {
+                document.execCommand('copy');
+                Craft.cp.displayNotice(messages.copied);
+            } catch (e) {
+                Craft.cp.displayError(messages.copyFailed);
+            }
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(output.value).then(function() {
+                Craft.cp.displayNotice(messages.copied);
+            }, fallback);
+        } else {
+            fallback();
+        }
+    });
+})();
+{% endjs %}

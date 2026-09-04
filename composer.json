@@ -1,0 +1,49 @@
+{
+  "name": "johnfmorton/craft-twig-scaffold",
+  "description": "Generates starter Twig templates from an entry type's field layout.",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "support": {
+    "email": "john@johnfmorton.com",
+    "issues": "https://github.com/johnfmorton/craft-twig-scaffold/issues?state=open",
+    "source": "https://github.com/johnfmorton/craft-twig-scaffold",
+    "docs": "https://github.com/johnfmorton/craft-twig-scaffold",
+    "rss": "https://github.com/johnfmorton/craft-twig-scaffold/releases.atom"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.11.0"
+  },
+  "require-dev": {
+    "craftcms/ecs": "dev-main",
+    "craftcms/phpstan": "dev-main",
+    "phpstan/phpstan": "^2.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "johnfmorton\\crafttwigscaffold\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "twig-scaffold",
+    "name": "Twig Scaffold",
+    "developer": "John F Morton",
+    "documentationUrl": "https://github.com/johnfmorton/craft-twig-scaffold",
+    "class": "johnfmorton\\crafttwigscaffold\\TwigScaffold"
+  },
+  "scripts": {
+    "check-cs": "ecs check --ansi",
+    "fix-cs": "ecs check --ansi --fix",
+    "phpstan": "phpstan --memory-limit=1G"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}
