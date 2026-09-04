@@ -38,6 +38,7 @@ use craft\helpers\Html;
 use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\models\Section;
+use johnfmorton\crafttwigscaffold\TwigScaffold;
 
 /**
  * Writes a starter Twig template for an entry type from its field layout.
@@ -239,6 +240,18 @@ class Generator extends Component
         if ($field instanceof MissingField) {
             $lines[] = "{$indent}{# The field type \"" . self::comment($field->expectedType) . '" is not installed, so nothing was generated for this field. #}';
             return;
+        }
+
+        // A renderer registered for this field type (by its plugin, an event
+        // handler, or the site config) takes precedence over the built-ins.
+        $custom = TwigScaffold::getInstance()->renderers->resolve($field, $expr, $var, $required);
+        if ($custom !== null) {
+            if (isset($custom['error'])) {
+                $lines[] = "{$indent}{# Twig Scaffold: the renderer registered by " . self::comment($custom['source']) . ' is invalid (' . self::comment($custom['error']) . '), so the built-in output follows. #}';
+            } else {
+                $this->appendGuarded($lines, $indent, $custom['guard'], $custom['twig']);
+                return;
+            }
         }
 
         if ($field instanceof Matrix) {

@@ -6,6 +6,7 @@ use craft\base\Plugin;
 use craft\events\RegisterComponentTypesEvent;
 use craft\services\Utilities;
 use johnfmorton\crafttwigscaffold\services\Generator;
+use johnfmorton\crafttwigscaffold\services\Renderers;
 use johnfmorton\crafttwigscaffold\utilities\TwigScaffoldUtility;
 use yii\base\Event;
 
@@ -17,6 +18,7 @@ use yii\base\Event;
  * @copyright John F Morton
  * @license https://craftcms.github.io/license/ Craft License
  * @property-read Generator $generator
+ * @property-read Renderers $renderers
  */
 class TwigScaffold extends Plugin
 {
@@ -27,6 +29,7 @@ class TwigScaffold extends Plugin
         return [
             'components' => [
                 'generator' => Generator::class,
+                'renderers' => Renderers::class,
             ],
         ];
     }

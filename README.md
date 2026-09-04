@@ -71,6 +71,61 @@ Fields that aren’t required are wrapped in `{% if %}` so empty values don’t 
 - **Inline loops** (the default) writes everything into one template: a `{% for %}` loop for each Matrix field, a `{% switch %}` on `block.type.handle` when the field has more than one block type, and the same again for Matrix fields nested inside blocks. An entry type that contains itself is cut off with a comment rather than looping forever.
 - **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead. Craft then renders each block with its own partial template, `templates/_partials/entry/<entryTypeHandle>.twig` (the folder follows your `partialTemplatesPath` config setting). Generate those partials with this utility too: pick the block’s entry type under **Nested entry types**.
 
+## Custom field types
+
+Twig Scaffold has built-in output for every field type that ships with Craft, plus CKEditor and Redactor. A field type from another plugin gets a comment instead:
+
+```twig
+{# Podcast Audio (Podcast Audio Field) #}
+{# No built-in rendering for this field type. Try {{ entry.podcastAudio }} or see the field's documentation. #}
+```
+
+Both plugin developers and site developers can fix that.
+
+### Site developers: `config/twig-scaffold.php`
+
+Create `config/twig-scaffold.php` in your project, mapping field classes to the Twig you want generated for them. `$value` stands for the expression that reaches the field's value:
+
+```php
+<?php
+// config/twig-scaffold.php
+
+return [
+    // A field type from a plugin that doesn't describe itself yet.
+    acme\podcast\fields\PodcastAudioField::class => [
+        'twig' => '<audio controls src="{{ $value.url }}"></audio>',
+        'guard' => '$value',
+    ],
+
+    // Override one of Craft's own field types, here to use your picture macro.
+    craft\fields\Assets::class => [
+        "{% import '_macros/media' as media %}",
+        '{% for asset in $value.all() %}',
+        '    {{ media.picture(asset) }}',
+        '{% endfor %}',
+    ],
+];
+```
+
+This file has the last word: it overrides renderers shipped by plugins and Twig Scaffold's built-in ones. The full format, including closures for settings-dependent output and the `$element`, `$handle`, and `$label` placeholders, is documented in [INTEGRATION.md](INTEGRATION.md).
+
+### Plugin developers: add Twig Scaffold support to your plugin
+
+If your plugin provides a field type, ship a `src/twig-scaffold.php` file that tells Twig Scaffold how to render it. It's a plain PHP array, it adds no dependency on Twig Scaffold, and it's only read when someone clicks **Generate Twig**:
+
+```php
+<?php
+// src/twig-scaffold.php in your plugin
+
+use acme\podcast\fields\PodcastAudioField;
+
+return [
+    PodcastAudioField::class => '<audio controls src="{{ $value.url }}"></audio>',
+];
+```
+
+**[Read the integration guide](INTEGRATION.md)** for the file's location, the four renderer forms (string, list of lines, `twig` + `guard`, closure), placeholders, matching by parent class, guidance on writing a good scaffold, how to test, and the event-based alternative for modules.
+
 ## Permissions
 
 Twig Scaffold shows up in the Utilities section for admins and for any user group with the **Utilities → Twig Scaffold** permission. The generator only reads your field layouts; it never touches content.
