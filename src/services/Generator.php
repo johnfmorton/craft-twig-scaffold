@@ -242,8 +242,9 @@ class Generator extends Component
             return;
         }
 
-        // A renderer registered for this field type (by its plugin, an event
-        // handler, or the site config) takes precedence over the built-ins.
+        // A renderer registered for this field type (bundled with Twig Scaffold,
+        // shipped by its plugin, an event handler, or the site config) takes
+        // precedence over the built-ins.
         $custom = TwigScaffold::getInstance()->renderers->resolve($field, $expr, $var, $required);
         if ($custom !== null) {
             if (isset($custom['error'])) {

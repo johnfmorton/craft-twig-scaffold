@@ -12,16 +12,19 @@ use Throwable;
 
 /**
  * The registry of Twig renderers for field types that plugins, modules, and
- * the site itself have taught Twig Scaffold about.
+ * the site itself have taught Twig Scaffold about, plus the renderers Twig
+ * Scaffold bundles for the field types of popular plugins.
  *
  * A renderer is looked up by the field's class, then its parent classes, so
- * one entry can cover a family of fields. Renderers come from three places,
+ * one entry can cover a family of fields. Renderers come from four places,
  * each overriding the one before it for the same class:
  *
- * 1. A `twig-scaffold.php` file shipped in an installed plugin's `src/`
+ * 1. The files Twig Scaffold bundles in its own `src/renderers/` folder, one
+ *    per plugin ({@see self::BUNDLED}).
+ * 2. A `twig-scaffold.php` file shipped in an installed plugin's `src/`
  *    folder (or its repo root).
- * 2. Handlers of the {@see self::EVENT_REGISTER_FIELD_RENDERERS} event.
- * 3. The site's own `config/twig-scaffold.php`.
+ * 3. Handlers of the {@see self::EVENT_REGISTER_FIELD_RENDERERS} event.
+ * 4. The site's own `config/twig-scaffold.php`.
  *
  * Every source uses the same shape: an array mapping a field class name to a
  * renderer, which is a Twig string, a list of Twig lines, an array with `twig`
@@ -41,6 +44,25 @@ class Renderers extends Component
 
     /** The file a plugin ships to describe its field types. */
     public const FILENAME = 'twig-scaffold.php';
+
+    /**
+     * The renderer files Twig Scaffold bundles for popular plugins, in
+     * `src/renderers/<handle>.php`, mapped to the plugin's name for messages.
+     * Each file has the same format as a plugin's `twig-scaffold.php`. They
+     * load first, so a file the plugin ships itself, an event handler, or the
+     * site's `config/twig-scaffold.php` all override them.
+     *
+     * @var array<string, string>
+     */
+    public const BUNDLED = [
+        'codefield' => 'Code Field',
+        'hyper' => 'Hyper',
+        'linkit' => 'Linkit',
+        'oembed' => 'oEmbed',
+        'seo' => 'SEO',
+        'simplemap' => 'Maps',
+        'tablemaker' => 'Table Maker',
+    ];
 
     /**
      * @var array<string, array{renderer: mixed, source: string}>|null keyed by
@@ -173,8 +195,8 @@ class Renderers extends Component
     }
 
     /**
-     * Fills the registry from plugin files, the event, and the site config,
-     * once per request.
+     * Fills the registry from the bundled files, plugin files, the event, and
+     * the site config, once per request.
      */
     private function loadRegistry(): void
     {
@@ -182,6 +204,15 @@ class Renderers extends Component
             return;
         }
         $this->registry = [];
+
+        // Bundled renderers first: every other source overrides them.
+        $dir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'renderers';
+        foreach (self::BUNDLED as $handle => $name) {
+            $file = $dir . DIRECTORY_SEPARATOR . $handle . '.php';
+            if (is_file($file)) {
+                $this->loadFile($file, "Twig Scaffold's bundled support for {$name}");
+            }
+        }
 
         foreach (Craft::$app->getPlugins()->getAllPlugins() as $plugin) {
             $basePath = $plugin->getBasePath();
