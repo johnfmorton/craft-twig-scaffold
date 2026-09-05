@@ -5,6 +5,7 @@ namespace johnfmorton\crafttwigscaffold\services;
 use Craft;
 use craft\base\Component;
 use craft\base\ElementContainerFieldInterface;
+use craft\base\ElementInterface;
 use craft\base\FieldInterface;
 use craft\errors\FieldNotFoundException;
 use craft\fieldlayoutelements\CustomField;
@@ -39,6 +40,7 @@ use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\models\Section;
 use johnfmorton\crafttwigscaffold\TwigScaffold;
+use yii\base\Model;
 
 /**
  * Writes a starter Twig template for an entry type from its field layout.
@@ -46,11 +48,15 @@ use johnfmorton\crafttwigscaffold\TwigScaffold;
  * Every field in the layout gets a block of Twig that renders it in a plain,
  * sensible way: text fields in paragraphs, images as `<img>` tags, relations as
  * linked lists, dates in `<time>` tags, options by label, tables as tables, and
- * Matrix fields as loops nested as deep as the content model goes, branching on
- * block type where a Matrix field has more than one. Field types the generator
- * doesn't know are named in a comment so nothing is silently dropped.
+ * Matrix, Super Table and Neo fields as loops nested as deep as the content
+ * model goes, branching on block type where a field has more than one. Field
+ * types the generator doesn't know are named in a comment so nothing is
+ * silently dropped.
  *
  * The output is a starting point to edit, not a finished template.
+ *
+ * @phpstan-type NeoType array{id: int, handle: string, layout: FieldLayout, topLevel: bool, children: list<string>|'*'}
+ * @phpstan-type NeoField array{types: array<string, NeoType>, maxLevels: int|null, budget: int}
  */
 class Generator extends Component
 {
@@ -67,6 +73,12 @@ class Generator extends Component
 
     /** Base class of the CKEditor and Redactor fields; referenced by name so neither plugin is required. */
     private const HTML_FIELD_CLASS = 'craft\\htmlfield\\HtmlField';
+
+    /** Neo's field class; referenced by name so the plugin is not required. */
+    private const NEO_FIELD_CLASS = 'benf\\neo\\Field';
+
+    /** Block-type bodies to spell out per Neo field before deeper child loops are left generic. */
+    private const NEO_MAX_CASES = 30;
 
     /** Variable names Craft or Twig defines, which a loop variable must not shadow. */
     private const RESERVED_VARIABLES = [
@@ -129,10 +141,20 @@ class Generator extends Component
      */
     private function partialPath(EntryType $entryType): string
     {
+        return $this->partialPathFor('entry', (string)$entryType->handle);
+    }
+
+    /**
+     * The partial template Craft's `render()` looks for first, given the ref
+     * handle of the element type and the handle of its field layout provider.
+     */
+    private function partialPathFor(string $refHandle, string $providerHandle): string
+    {
         return sprintf(
-            'templates/%s/entry/%s.twig',
+            'templates/%s/%s/%s.twig',
             trim(Craft::$app->getConfig()->getGeneral()->partialTemplatesPath, '/'),
-            $entryType->handle,
+            $refHandle,
+            $providerHandle,
         );
     }
 
@@ -262,6 +284,11 @@ class Generator extends Component
 
         if ($field instanceof ContentBlock) {
             $this->appendContentBlock($lines, $field, $expr, $depth, $variables, $ancestors);
+            return;
+        }
+
+        if ($field instanceof ElementContainerFieldInterface && is_a($field, self::NEO_FIELD_CLASS)) {
+            $this->appendNeo($lines, $field, $expr, $depth, $variables, $ancestors);
             return;
         }
 
@@ -492,6 +519,190 @@ class Generator extends Component
         $lines[] = "{$indent}{% if {$block} %}";
         $this->appendLayout($lines, $field->getFieldLayout(), $block, $depth + 1, $variables, $ancestors);
         $lines[] = "{$indent}{% endif %}";
+    }
+
+    /**
+     * Neo fields are element queries like Matrix, but their blocks are not
+     * entries and can nest: a block type may allow child block types, and the
+     * field may cap how many levels deep that goes. Top-level blocks are
+     * looped with `level(1)`, and every type that allows children gets its
+     * own loop over `children`, as deep as the field allows, until a type
+     * repeats itself or the template would get unwieldy.
+     *
+     * @param string[] $lines
+     * @param string[] $variables
+     * @param string[] $ancestors
+     */
+    private function appendNeo(array &$lines, ElementContainerFieldInterface $field, string $expr, int $depth, array $variables, array $ancestors): void
+    {
+        $indent = str_repeat(self::INDENT, $depth);
+        $types = $this->neoBlockTypes($field);
+        $top = array_values(array_filter($types, fn(array $type) => $type['topLevel']));
+
+        if ($top === []) {
+            $lines[] = "{$indent}{# This Neo field has no block types. #}";
+            return;
+        }
+
+        $maxLevels = self::attribute($field, 'maxLevels');
+        $maxLevels = is_numeric($maxLevels) && (int)$maxLevels > 0 ? (int)$maxLevels : null;
+        $hierarchical = $maxLevels !== 1 && array_filter($types, fn(array $type) => $type['children'] !== []) !== [];
+        $source = $hierarchical ? "{$expr}.level(1)" : $expr;
+
+        if ($this->matrixMode === self::MATRIX_PARTIALS) {
+            $partials = array_map(
+                fn(array $type) => $this->partialPathFor(self::refHandleFor($type['layout'], 'neoblock'), $type['handle']),
+                array_values($types),
+            );
+            $lines[] = "{$indent}{# Renders each block with its partial template, where the block is available as `neoblock`"
+                . ($hierarchical ? ' and its children render with {{ neoblock.children.render() }}' : '')
+                . '. Write those by hand: ' . implode(', ', $partials) . ' #}';
+            $lines[] = "{$indent}{{ {$source}.render() }}";
+            return;
+        }
+
+        if ($depth >= self::MAX_DEPTH) {
+            $lines[] = "{$indent}{# Nested too deep to generate; add this Neo field by hand. #}";
+            return;
+        }
+
+        $neo = ['types' => $types, 'maxLevels' => $maxLevels, 'budget' => self::NEO_MAX_CASES];
+        $block = $this->uniqueVariable(self::singular($field->handle) ?? 'block', $variables);
+        $this->appendNeoLoop($lines, "{$source}.all()", $top, $block, 1, $depth, $variables, $ancestors, $neo);
+    }
+
+    /**
+     * The field's enabled block types, keyed by handle, in field order. Read
+     * through the model's public attributes, since Neo's classes can't be
+     * named here.
+     *
+     * @return array<string, NeoType>
+     */
+    private function neoBlockTypes(ElementContainerFieldInterface $field): array
+    {
+        $types = [];
+        foreach ($field->getFieldLayoutProviders() as $provider) {
+            $handle = self::attribute($provider, 'handle');
+            if (!is_string($handle) || $handle === '' || self::attribute($provider, 'enabled') === false) {
+                continue;
+            }
+
+            // Child block types: every type ('*'), a list of handles, or none.
+            $children = self::attribute($provider, 'childBlocks');
+            if (is_string($children) && $children !== '*') {
+                $children = json_decode($children, true);
+            }
+            $allowed = [];
+            if (is_array($children)) {
+                foreach ($children as $child) {
+                    if (is_string($child) && $child !== '') {
+                        $allowed[] = $child;
+                    }
+                }
+            }
+
+            $types[$handle] = [
+                'id' => (int)self::attribute($provider, 'id'),
+                'handle' => $handle,
+                'layout' => $provider->getFieldLayout(),
+                'topLevel' => self::attribute($provider, 'topLevel') !== false,
+                'children' => $children === '*' || $children === true ? '*' : $allowed,
+            ];
+        }
+
+        return $types;
+    }
+
+    /**
+     * The block types allowed under a block of this type, in field order.
+     *
+     * @param NeoType $type
+     * @param array<string, NeoType> $types
+     * @return NeoType[]
+     */
+    private static function neoChildTypes(array $type, array $types): array
+    {
+        if ($type['children'] === '*') {
+            return array_values($types);
+        }
+
+        return array_values(array_filter($types, fn(array $candidate) => in_array($candidate['handle'], $type['children'], true)));
+    }
+
+    /**
+     * `{% for %}` over the blocks in `$source`, branching on block type when
+     * more than one is allowed.
+     *
+     * @param string[] $lines
+     * @param NeoType[] $allowed
+     * @param string[] $variables
+     * @param string[] $ancestors
+     * @param NeoField $neo
+     */
+    private function appendNeoLoop(array &$lines, string $source, array $allowed, string $var, int $level, int $depth, array $variables, array $ancestors, array &$neo): void
+    {
+        $indent = str_repeat(self::INDENT, $depth);
+        $variables[] = $var;
+        $lines[] = "{$indent}{% for {$var} in {$source} %}";
+
+        if (count($allowed) === 1) {
+            $this->appendNeoBlock($lines, $allowed[0], $var, $level, $depth + 1, $variables, $ancestors, $neo);
+        } else {
+            // Different block types carry different fields, so branch on the type.
+            $lines[] = "{$indent}" . self::INDENT . "{% switch {$var}.type.handle %}";
+            foreach ($allowed as $type) {
+                $lines[] = "{$indent}" . str_repeat(self::INDENT, 2) . "{% case \"{$type['handle']}\" %}";
+                $this->appendNeoBlock($lines, $type, $var, $level, $depth + 3, $variables, $ancestors, $neo);
+            }
+            $lines[] = "{$indent}" . self::INDENT . '{% endswitch %}';
+        }
+
+        $lines[] = "{$indent}{% endfor %}";
+    }
+
+    /**
+     * One block type's fields, then a loop over its child blocks when it can
+     * have any.
+     *
+     * @param string[] $lines
+     * @param NeoType $type
+     * @param string[] $variables
+     * @param string[] $ancestors
+     * @param NeoField $neo
+     */
+    private function appendNeoBlock(array &$lines, array $type, string $var, int $level, int $depth, array $variables, array $ancestors, array &$neo): void
+    {
+        $indent = str_repeat(self::INDENT, $depth);
+        $key = 'blockType:' . $type['id'];
+
+        if (in_array($key, $ancestors, true)) {
+            // A block type that can contain itself would loop forever.
+            $lines[] = "{$indent}{# \"{$type['handle']}\" blocks can be nested inside themselves. Add the deeper levels by hand. #}";
+            return;
+        }
+
+        $neo['budget']--;
+        $ancestors[] = $key;
+        $this->appendLayout($lines, $type['layout'], $var, $depth, $variables, $ancestors);
+
+        $children = self::neoChildTypes($type, $neo['types']);
+        if ($children === [] || ($neo['maxLevels'] !== null && $level >= $neo['maxLevels'])) {
+            return;
+        }
+
+        $child = $this->uniqueVariable('child', $variables);
+        $lines[] = '';
+
+        if ($neo['budget'] <= 0 || $depth >= self::MAX_DEPTH) {
+            // Enough spelled out: leave the deeper levels as one generic loop.
+            $handles = implode(', ', array_map(fn(array $childType) => "\"{$childType['handle']}\"", $children));
+            $lines[] = "{$indent}{% for {$child} in {$var}.children.all() %}";
+            $lines[] = "{$indent}" . self::INDENT . "{# Not spelled out, to keep this template a manageable size: {$handles} blocks can appear here. Branch on {$child}.type.handle as above. #}";
+            $lines[] = "{$indent}{% endfor %}";
+            return;
+        }
+
+        $this->appendNeoLoop($lines, "{$var}.children.all()", $children, $child, $level + 1, $depth, $variables, $ancestors, $neo);
     }
 
     /**
@@ -736,6 +947,33 @@ class Generator extends Component
     private static function isHtmlField(FieldInterface $field): bool
     {
         return is_a($field, self::HTML_FIELD_CLASS);
+    }
+
+    /**
+     * A public property of a model from a plugin that isn't a dependency here
+     * (so its class can't be named), or null when there is no such property.
+     */
+    private static function attribute(object $model, string $name): mixed
+    {
+        if ($model instanceof Model && in_array($name, $model->attributes(), true)) {
+            return $model->getAttributes([$name])[$name] ?? null;
+        }
+
+        return null;
+    }
+
+    /**
+     * The ref handle of the element type a field layout belongs to (`entry`,
+     * `neoblock`), or the fallback when the layout doesn't say.
+     */
+    private static function refHandleFor(FieldLayout $layout, string $fallback): string
+    {
+        $type = $layout->type;
+        if ($type !== null && is_subclass_of($type, ElementInterface::class)) {
+            return $type::refHandle() ?? $fallback;
+        }
+
+        return $fallback;
     }
 
     /** Text safe to put inside a Twig comment. */
