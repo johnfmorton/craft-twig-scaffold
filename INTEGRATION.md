@@ -1,6 +1,6 @@
 # Adding Twig Scaffold support to your plugin
 
-[Twig Scaffold](https://github.com/johnfmorton/craft-twig-scaffold) is a Craft CMS 5 control panel utility that writes a starter Twig template for an entry type from its field layout. It knows how to render every field type that ships with Craft, plus CKEditor and Redactor. For a field type from another plugin, all it can write is a comment:
+[Twig Scaffold](https://github.com/johnfmorton/craft-twig-scaffold) is a Craft CMS 5 control panel utility that writes a starter Twig template for an entry type from its field layout. It knows how to render every field type that ships with Craft, plus CKEditor, Redactor, Neo and Super Table, and it bundles starter renderers for Hyper, SEO, oEmbed, Maps, Table Maker, Code Field, and Linkit. For a field type from any other plugin, all it can write is a comment:
 
 ```twig
 {# Podcast Audio (Podcast Audio Field) #}
@@ -21,6 +21,7 @@ If your plugin provides a field type, you can ship one small file that tells Twi
 - [How fields are matched](#how-fields-are-matched)
 - [Writing a good scaffold](#writing-a-good-scaffold)
 - [Fields with nothing to render](#fields-with-nothing-to-render)
+- [If Twig Scaffold already bundles a renderer for your plugin](#if-twig-scaffold-already-bundles-a-renderer-for-your-plugin)
 - [Testing your file](#testing-your-file)
 - [Other ways to register renderers](#other-ways-to-register-renderers)
 - [Reference](#reference)
@@ -181,7 +182,7 @@ The guard is a raw Twig expression, so anything is allowed: `$value.url is defin
 
 Twig Scaffold looks up a field by its exact class first, then walks its parent classes. So a renderer registered for a base class covers every field that extends it, and a renderer for a subclass overrides one for its parent. Interfaces are not matched.
 
-Use `::class` for the keys. It compiles to a string and does not autoload anything, so it is safe even in a file that is loaded before your plugin's classes are.
+Use `::class` for the keys. It compiles to a string and does not autoload anything, so it is safe even in a file that is loaded before your plugin's classes are. A plain string class name works too; Twig Scaffold's own bundled files use strings because those plugins aren't dependencies its static analysis can see.
 
 Class names are compared case-insensitively, and a leading backslash is ignored.
 
@@ -238,6 +239,10 @@ return [
 
 That is still a big improvement over the default "no built-in rendering" comment: the developer learns what the field is for and what to do next, without leaving the template.
 
+## If Twig Scaffold already bundles a renderer for your plugin
+
+Twig Scaffold ships starter renderers for some popular plugins in its own [`src/renderers/`](src/renderers/) folder, one file per plugin (`src/renderers/hyper.php`, for example). Each has the same format as a plugin's `twig-scaffold.php`, so taking ownership is two steps: copy the file into your plugin as `src/twig-scaffold.php`, and replace the string class name with `YourField::class`. Your file overrides the bundled one for the same class (see the precedence order below), so nothing else needs to change. Open an issue or pull request on Twig Scaffold so the bundled copy can be retired.
+
 ## Testing your file
 
 1. Install Twig Scaffold in a local Craft 5 project alongside your plugin:
@@ -261,7 +266,7 @@ If something in the file is wrong, Twig Scaffold says so in the generated output
 {# No built-in rendering for this field type. Try {{ entry.podcastAudio }} or see the field's documentation. #}
 ```
 
-The same message is logged with Craft's `warning` level. A file that throws while being loaded, or that doesn't return an array, is logged and ignored in its entirety.
+The same message is logged with Craft's `warning` level. A file that throws while being loaded, or that doesn't return an array, is logged and ignored in its entirety. A bundled file that fails produces the same message, with the source "Twig Scaffold's bundled support for <Plugin>".
 
 ## Other ways to register renderers
 
@@ -281,7 +286,7 @@ The file is the recommended route for plugins that own a field type. Two other r
 
 - **A site-level file**, `config/twig-scaffold.php` in the Craft project, for site developers. It can describe field types whose plugins don't ship a file, and it can override any renderer, including Twig Scaffold's built-in ones for Craft's own fields. It supports Craft's multi-environment config keys (`'*'`, `'dev'`, and so on) like any other file in `config/`.
 
-Precedence, lowest to highest: Twig Scaffold's built-in output, plugin `twig-scaffold.php` files, event handlers, the site's `config/twig-scaffold.php`. Within that, the most specific class match wins: a renderer for a subclass beats one for its parent, wherever each was registered.
+Precedence, lowest to highest: Twig Scaffold's built-in output, the renderers Twig Scaffold bundles for popular plugins, plugin `twig-scaffold.php` files, event handlers, the site's `config/twig-scaffold.php`. Within that, the most specific class match wins: a renderer for a subclass beats one for its parent, wherever each was registered.
 
 ## Reference
 

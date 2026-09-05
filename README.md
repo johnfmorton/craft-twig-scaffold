@@ -46,7 +46,8 @@ Every custom field in the layout gets a block of Twig with a comment naming the 
 | CKEditor, Redactor | `{{ entry.handle }}` (and a note when the field has nested entries, which render via their partial templates) |
 | Assets | An `<img>` with `alt`, `width` and `height` for images, a link for other files; a single `<img>` when the field allows one asset |
 | Entries, Categories, Tags, Users | A `<ul>` of linked titles (usernames for users), fetched once into a variable so an empty list costs one query |
-| Matrix | A `{% for %}` loop nested as deep as the content model goes, with `{% switch %}` on block type when a field has several |
+| Matrix, Super Table | A `{% for %}` loop nested as deep as the content model goes, with `{% switch %}` on block type when a field has several; a `{% set %}` and `{% if %}` when the field allows one block |
+| Neo | A `{% for %}` over `level(1)` blocks with `{% switch %}` on block type, and a nested `{% for child in block.children.all() %}` for every block type that allows children, as deep as the field’s max levels allow. A type that can contain itself is cut off with a comment |
 | Content Block | The block’s fields, guarded by `{% if %}` |
 | Date, Time | A `<time>` tag with a machine-readable `datetime` attribute, always guarded (Twig treats a null date as “now”) |
 | Dropdown, Radio Buttons, Button Group | `{{ entry.handle.label }}` |
@@ -62,14 +63,28 @@ Every custom field in the layout gets a block of Twig with a comment naming the 
 
 Fields that aren’t required are wrapped in `{% if %}` so empty values don’t leave empty tags behind. Fields whose values are objects (dates, links, colors) are always guarded. Layouts with several tabs get a comment per tab.
 
-### Matrix fields: inline loops or partial templates
+### Block fields: inline loops or partial templates
 
-- **Inline loops** (the default) writes everything into one template: a `{% for %}` loop for each Matrix field, a `{% switch %}` on `block.type.handle` when the field has more than one block type, and the same again for Matrix fields nested inside blocks. An entry type that contains itself is cut off with a comment rather than looping forever.
-- **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead. Craft then renders each block with its own partial template, `templates/_partials/entry/<entryTypeHandle>.twig` (the folder follows your `partialTemplatesPath` config setting). Generate those partials with this utility too: pick the block’s entry type under **Nested entry types**.
+- **Inline loops** (the default) writes everything into one template: a `{% for %}` loop for each Matrix, Super Table or Neo field, a `{% switch %}` on `block.type.handle` when the field has more than one block type, and the same again for block fields nested inside blocks. An entry type or Neo block type that contains itself is cut off with a comment rather than looping forever.
+- **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead. Craft then renders each block with its own partial template: `templates/_partials/entry/<entryTypeHandle>.twig` for Matrix and Super Table blocks, and `templates/_partials/neoblock/<blockTypeHandle>.twig` for Neo blocks (the folder follows your `partialTemplatesPath` config setting). Generate the Matrix and Super Table partials with this utility too: pick the block’s entry type under **Nested entry types**. Neo block types are not listed there yet, so write those partials by hand; inside them the block is available as `neoblock`, and `{{ neoblock.children.render() }}` renders its child blocks.
 
 ## Custom field types
 
-Twig Scaffold has built-in output for every field type that ships with Craft, plus CKEditor and Redactor. A field type from another plugin gets a comment instead:
+Twig Scaffold has built-in output for every field type that ships with Craft, plus CKEditor, Redactor, Neo and Super Table, and it bundles renderers for these popular plugins:
+
+| Plugin | Output |
+| --- | --- |
+| Hyper | `{{ entry.handle.getLink() }}`, guarded by `isEmpty()`; a `<ul>` loop when the field allows multiple links |
+| SEO | A comment: the SEO plugin writes the data to `<head>` through `{% hook "seo" %}`, so there is nothing to output in the body; it lists the properties for a custom meta template |
+| oEmbed | `{{ entry.handle.render() }}` when the URL is valid |
+| Maps | The address and coordinates, with a note on `embed()` and `img()` |
+| Table Maker | A `<table>` looping the value’s columns and rows, cells formatted by column type |
+| Code Field | `<pre><code class="language-…">` with the code, escaped so it displays as text |
+| Linkit | `{{ entry.handle.getLink() }}` when the link is available |
+
+Those renderers live in [`src/renderers/`](src/renderers/), one file per plugin, in the same format as a plugin’s own `twig-scaffold.php`, so a plugin author can copy one into their plugin and own it; a file shipped by the plugin itself overrides the bundled one. Super Table fields are Matrix fields in Craft 5, so they work exactly as Matrix fields do. Field Manager adds no field types, so there is nothing for it to render.
+
+A field type from any other plugin gets a comment instead:
 
 ```twig
 {# Podcast Audio (Podcast Audio Field) #}
@@ -103,7 +118,7 @@ return [
 ];
 ```
 
-This file has the last word: it overrides renderers shipped by plugins and Twig Scaffold's built-in ones. The full format, including closures for settings-dependent output and the `$element`, `$handle`, and `$label` placeholders, is documented in [INTEGRATION.md](INTEGRATION.md).
+This file has the last word: it overrides renderers shipped by plugins, the ones Twig Scaffold bundles, and its built-in output for Craft's own fields. The full format, including closures for settings-dependent output and the `$element`, `$handle`, and `$label` placeholders, is documented in [INTEGRATION.md](INTEGRATION.md).
 
 ### Plugin developers: add Twig Scaffold support to your plugin
 
@@ -120,7 +135,9 @@ return [
 ];
 ```
 
-**[Read the integration guide](INTEGRATION.md)** for the file's location, the four renderer forms (string, list of lines, `twig` + `guard`, closure), placeholders, matching by parent class, guidance on writing a good scaffold, how to test, and the event-based alternative for modules.
+If Twig Scaffold already bundles a renderer for your field type, your file wins, and the bundled one is a ready-made starting point to copy.
+
+**[Read the integration guide](INTEGRATION.md)** for the file's location, the four renderer forms (string, list of lines, `twig` + `guard`, closure), placeholders, matching by parent class, guidance on writing a good scaffold, how to adopt a bundled renderer, how to test, and the event-based alternative for modules.
 
 ## Permissions
 

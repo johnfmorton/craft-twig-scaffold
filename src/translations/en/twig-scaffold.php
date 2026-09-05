@@ -2,14 +2,14 @@
 
 return [
     'Twig Scaffold' => 'Twig Scaffold',
-    'Utility intro' => 'Pick an entry type and Twig Scaffold writes a starter Twig template that renders every field in its layout: text, images, relations, dates, options, tables, and Matrix blocks nested as deep as the content model goes. Copy it into your templates folder and edit from there.',
+    'Utility intro' => 'Pick an entry type and Twig Scaffold writes a starter Twig template that renders every field in its layout: text, images, relations, dates, options, tables, and Matrix, Neo and Super Table blocks nested as deep as the content model goes. Copy it into your templates folder and edit from there.',
     'There are no entry types to scaffold yet.' => 'There are no entry types to scaffold yet.',
     'Entry type' => 'Entry type',
-    'Entry type instructions' => 'Grouped by section. Entry types used only inside Matrix or CKEditor fields are listed under “Nested entry types”; scaffold those to write the partial templates Craft renders them with.',
+    'Entry type instructions' => 'Grouped by section. Entry types used only inside Matrix, Super Table or CKEditor fields are listed under “Nested entry types”; scaffold those to write the partial templates Craft renders them with.',
     'Nested entry types' => 'Nested entry types',
     'Unused entry types' => 'Unused entry types',
-    'Matrix fields' => 'Matrix fields',
-    'Matrix mode instructions' => '**Inline loops** writes a `{% for %}` loop for every Matrix field, branching on block type, so the whole entry renders from one template. **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead, and Craft renders each block with its own partial template in `templates/_partials/entry/`, which you can generate here too.',
+    'Block fields' => 'Block fields',
+    'Matrix mode instructions' => '**Inline loops** writes a `{% for %}` loop for every Matrix, Neo or Super Table field, branching on block type, so the whole entry renders from one template. **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead, and Craft renders each block with its own partial template in `templates/_partials/entry/` (Matrix and Super Table, which you can generate here too) or `templates/_partials/neoblock/` (Neo).',
     'Inline loops' => 'Inline loops',
     'Partial templates' => 'Partial templates',
     'Generate Twig' => 'Generate Twig',
