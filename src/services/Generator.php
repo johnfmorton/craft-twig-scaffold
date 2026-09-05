@@ -462,23 +462,49 @@ class Generator extends Component
             return;
         }
 
+        if ($field->maxEntries === 1) {
+            // At most one block: fetch it into a variable rather than looping.
+            $block = $this->uniqueVariable($field->handle, $variables);
+            $variables[] = $block;
+            $lines[] = "{$indent}{% set {$block} = {$expr}.one() %}";
+            $lines[] = "{$indent}{% if {$block} %}";
+            $this->appendBlockBodies($lines, $entryTypes, $block, $depth, $variables, $ancestors);
+            $lines[] = "{$indent}{% endif %}";
+            return;
+        }
+
         $block = $this->uniqueVariable(self::singular($field->handle) ?? 'block', $variables);
         $variables[] = $block;
         $lines[] = "{$indent}{% for {$block} in {$expr}.all() %}";
+        $this->appendBlockBodies($lines, $entryTypes, $block, $depth, $variables, $ancestors);
+        $lines[] = "{$indent}{% endfor %}";
+    }
+
+    /**
+     * The fields of each block type, inside a `{% switch %}` on the type when
+     * there is more than one.
+     *
+     * @param string[] $lines
+     * @param EntryType[] $entryTypes
+     * @param string[] $variables
+     * @param string[] $ancestors
+     */
+    private function appendBlockBodies(array &$lines, array $entryTypes, string $var, int $depth, array $variables, array $ancestors): void
+    {
+        $indent = str_repeat(self::INDENT, $depth);
 
         if (count($entryTypes) === 1) {
-            $this->appendBlock($lines, $entryTypes[0], $block, $depth + 1, $variables, $ancestors);
-        } else {
-            // Different block types carry different fields, so branch on the type.
-            $lines[] = "{$indent}" . self::INDENT . "{% switch {$block}.type.handle %}";
-            foreach ($entryTypes as $entryType) {
-                $lines[] = "{$indent}" . str_repeat(self::INDENT, 2) . "{% case \"{$entryType->handle}\" %}";
-                $this->appendBlock($lines, $entryType, $block, $depth + 3, $variables, $ancestors);
-            }
-            $lines[] = "{$indent}" . self::INDENT . '{% endswitch %}';
+            $this->appendBlock($lines, $entryTypes[0], $var, $depth + 1, $variables, $ancestors);
+            return;
         }
 
-        $lines[] = "{$indent}{% endfor %}";
+        // Different block types carry different fields, so branch on the type.
+        $lines[] = "{$indent}" . self::INDENT . "{% switch {$var}.type.handle %}";
+        foreach ($entryTypes as $entryType) {
+            $lines[] = "{$indent}" . str_repeat(self::INDENT, 2) . "{% case \"{$entryType->handle}\" %}";
+            $this->appendBlock($lines, $entryType, $var, $depth + 3, $variables, $ancestors);
+        }
+        $lines[] = "{$indent}" . self::INDENT . '{% endswitch %}';
     }
 
     /**
