@@ -36,12 +36,15 @@ class ScaffoldController extends Controller
 
         $generator = TwigScaffold::getInstance()->generator;
         $matrixMode = (string)$this->request->getBodyParam('matrixMode', $generator::MATRIX_INLINE);
+        $result = $generator->scaffold($entryType, $matrixMode);
 
         return $this->asSuccess(data: [
-            'twig' => $generator->forEntryType($entryType, $matrixMode),
+            'twig' => $result['twig'],
             'hint' => Craft::t('twig-scaffold', 'Suggested location: {path}', [
                 'path' => $generator->suggestedPath($entryType),
             ]),
+            // In partial-templates mode: a starter for every partial the template relies on.
+            'partials' => $result['partials'],
         ]);
     }
 }

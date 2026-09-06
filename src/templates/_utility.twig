@@ -51,6 +51,7 @@
             <div class="buttons">
                 <button type="button" class="btn" data-twig-scaffold-copy>{{ 'Copy to clipboard'|t('twig-scaffold') }}</button>
             </div>
+            <div data-twig-scaffold-partials></div>
         </div>
     {% endif %}
 </div>
@@ -68,12 +69,73 @@
     var output = root.querySelector('[data-twig-scaffold-output]');
     var hint = root.querySelector('[data-twig-scaffold-hint]');
     var copy = root.querySelector('[data-twig-scaffold-copy]');
+    var partialsBox = root.querySelector('[data-twig-scaffold-partials]');
 
     var messages = {
         copied: {{ 'Copied to clipboard.'|t('twig-scaffold')|json_encode|raw }},
         copyFailed: {{ 'Could not copy. Select the text and copy it yourself.'|t('twig-scaffold')|json_encode|raw }},
-        generateFailed: {{ 'Could not generate the template.'|t('twig-scaffold')|json_encode|raw }}
+        generateFailed: {{ 'Could not generate the template.'|t('twig-scaffold')|json_encode|raw }},
+        copy: {{ 'Copy to clipboard'|t('twig-scaffold')|json_encode|raw }},
+        partialLabel: {{ 'Partial template: {label}'|t('twig-scaffold')|json_encode|raw }},
+        partialInstructions: {{ 'Partial instructions'|t('twig-scaffold')|json_encode|raw }}
     };
+
+    function rowsFor(twig) {
+        return Math.min(Math.max(twig.split('\n').length, 6), 40);
+    }
+
+    // One starter per partial template the main template relies on.
+    function renderPartials(partials) {
+        partialsBox.textContent = '';
+        partials.forEach(function(partial, index) {
+            var id = 'twig-scaffold-partial-' + index;
+
+            var label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = messages.partialLabel.replace('{label}', partial.label);
+            var heading = document.createElement('div');
+            heading.className = 'heading';
+            heading.appendChild(label);
+
+            var text = document.createElement('p');
+            text.textContent = messages.partialInstructions.replace('{path}', partial.path).replace('{variable}', partial.variable);
+            var instructions = document.createElement('div');
+            instructions.className = 'instructions';
+            instructions.appendChild(text);
+
+            var textarea = document.createElement('textarea');
+            textarea.id = id;
+            textarea.className = 'text code fullwidth';
+            textarea.readOnly = true;
+            textarea.spellcheck = false;
+            textarea.rows = rowsFor(partial.twig);
+            textarea.value = partial.twig;
+            var input = document.createElement('div');
+            input.className = 'input';
+            input.appendChild(textarea);
+
+            var field = document.createElement('div');
+            field.className = 'field';
+            field.appendChild(heading);
+            field.appendChild(instructions);
+            field.appendChild(input);
+
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn';
+            button.textContent = messages.copy;
+            button.addEventListener('click', function() {
+                copyText(textarea);
+            });
+            var buttons = document.createElement('div');
+            buttons.className = 'buttons';
+            buttons.appendChild(button);
+
+            partialsBox.appendChild(document.createElement('hr'));
+            partialsBox.appendChild(field);
+            partialsBox.appendChild(buttons);
+        });
+    }
 
     function matrixMode() {
         var checked = root.querySelector('[data-twig-scaffold-matrix-mode] input[type="radio"]:checked');
@@ -92,6 +154,7 @@
                 output.value = twig;
                 output.rows = Math.min(Math.max(twig.split('\n').length, 8), 60);
                 hint.textContent = response.data.hint || '';
+                renderPartials(response.data.partials || []);
                 result.classList.remove('hidden');
                 result.scrollIntoView({ behavior: 'smooth', block: 'start' });
             })
@@ -105,10 +168,10 @@
             });
     });
 
-    copy.addEventListener('click', function() {
+    function copyText(textarea) {
         var fallback = function() {
-            output.focus();
-            output.select();
+            textarea.focus();
+            textarea.select();
             try {
                 document.execCommand('copy');
                 Craft.cp.displayNotice(messages.copied);
@@ -118,12 +181,16 @@
         };
 
         if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(output.value).then(function() {
+            navigator.clipboard.writeText(textarea.value).then(function() {
                 Craft.cp.displayNotice(messages.copied);
             }, fallback);
         } else {
             fallback();
         }
+    }
+
+    copy.addEventListener('click', function() {
+        copyText(output);
     });
 })();
 {% endjs %}

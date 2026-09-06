@@ -1,5 +1,16 @@
 # Release Notes for Twig Scaffold
 
+## 1.2.0 - Unreleased
+
+### Added
+
+- **Partial templates are generated too.** In partial-templates mode the utility now lists a starter template for every partial the main template relies on: one per Matrix or Super Table entry type and per Neo block type, including those only reached through another partial. Each shows its suggested path, the variable the block is available as (`entry` or `neoblock`), and has its own copy button. Before, the output only named the files and Neo partials had to be written by hand.
+- `Generator::scaffold()` returns the main template together with its partials; `forEntryType()` still returns the main template alone.
+
+### Changed
+
+- The comment above a `render()` call now says which variable the block is available as in its partial, instead of "generate those here too" or "write those by hand".
+
 ## 1.1.0 - 2026-09-05
 
 ### Added
