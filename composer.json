@@ -1,7 +1,7 @@
 {
   "name": "johnfmorton/craft-twig-scaffold",
   "description": "Generates starter Twig templates from an entry type's field layout.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "craft-plugin",
   "license": "proprietary",
   "support": {
