@@ -1,5 +1,12 @@
 # Release Notes for Twig Scaffold
 
+## 1.3.1 - Unreleased
+
+### Changed
+
+- **Twig Scaffold is now released under the MIT license.** The plugin is free: `composer.json` declares `MIT` and `LICENSE.md` carries the MIT text. Nothing changes in how the plugin works.
+- `composer.json` names the author and a `developerUrl`, so the control panel and Packagist link back to the developer.
+
 ## 1.3.0 - 2026-09-07
 
 ### Changed

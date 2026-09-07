@@ -3,7 +3,13 @@
   "description": "Generates starter Twig templates from an entry type's field layout.",
   "version": "1.3.0",
   "type": "craft-plugin",
-  "license": "proprietary",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "John F Morton",
+      "homepage": "https://johnfmorton.com/"
+    }
+  ],
   "support": {
     "email": "john@johnfmorton.com",
     "issues": "https://github.com/johnfmorton/craft-twig-scaffold/issues?state=open",
@@ -29,6 +35,7 @@
     "handle": "twig-scaffold",
     "name": "Twig Scaffold",
     "developer": "John F Morton",
+    "developerUrl": "https://johnfmorton.com/",
     "documentationUrl": "https://github.com/johnfmorton/craft-twig-scaffold",
     "class": "johnfmorton\\crafttwigscaffold\\TwigScaffold"
   },
