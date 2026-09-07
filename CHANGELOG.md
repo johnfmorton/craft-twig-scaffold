@@ -1,6 +1,6 @@
 # Release Notes for Twig Scaffold
 
-## 1.3.0 - Unreleased
+## 1.3.0 - 2026-09-07
 
 ### Changed
 
