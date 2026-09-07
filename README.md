@@ -63,6 +63,10 @@ Every custom field in the layout gets a block of Twig with a comment naming the 
 
 Fields that aren’t required are wrapped in `{% if %}` so empty values don’t leave empty tags behind. Fields whose values are objects (dates, links, colors) are always guarded. Layouts with several tabs get a comment per tab.
 
+### Eager loading
+
+Every Assets, Entries, Categories, Tags, Users, Addresses, Matrix and Super Table query is written with `.eagerly()`, Craft’s lazy eager-loading. On the entry a section template receives from the route it does nothing, because there is only one entry to load for. Inside a block loop, in the partials Craft renders with `render()`, and when the template is included from a listing, it fetches the relation for every block or entry in at most two queries (one to map the relations, one to load them) instead of one query per block, which is the N+1 that block-heavy pages usually suffer from. It only loads what the template actually touches, so there is nothing to trim; if you would rather not have it on a line, deleting `.eagerly()` is all it takes. Neo queries are left alone, because Neo’s block query does not support it.
+
 ### Block fields: inline loops or partial templates
 
 - **Inline loops** (the default) writes everything into one template: a `{% for %}` loop for each Matrix, Super Table or Neo field, a `{% switch %}` on `block.type.handle` when the field has more than one block type, and the same again for block fields nested inside blocks. An entry type or Neo block type that contains itself is cut off with a comment rather than looping forever.

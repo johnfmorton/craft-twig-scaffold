@@ -444,7 +444,7 @@ class Generator extends Component
 
         if ($field instanceof Addresses) {
             $address = $this->uniqueVariable(self::singular($field->handle) ?? 'address', $variables);
-            $lines[] = "{$indent}{% for {$address} in {$expr}.all() %}";
+            $lines[] = "{$indent}{% for {$address} in {$expr}.eagerly().all() %}";
             $lines[] = "{$indent}" . self::INDENT . "{{ {$address}|address }}";
             $lines[] = "{$indent}{% endfor %}";
             return;
@@ -593,7 +593,7 @@ class Generator extends Component
         if ($this->matrixMode === self::MATRIX_PARTIALS) {
             $partials = array_map(fn(EntryType $entryType) => $this->queueEntryTypePartial($entryType), $entryTypes);
             $lines[] = "{$indent}{# Renders each block with the partial template for its type, where the block is available as `entry`: " . implode(', ', $partials) . ' #}';
-            $lines[] = "{$indent}{{ {$expr}.render() }}";
+            $lines[] = "{$indent}{{ {$expr}.eagerly().render() }}";
             return;
         }
 
@@ -606,7 +606,7 @@ class Generator extends Component
             // At most one block: fetch it into a variable rather than looping.
             $block = $this->uniqueVariable($field->handle, $variables);
             $variables[] = $block;
-            $lines[] = "{$indent}{% set {$block} = {$expr}.one() %}";
+            $lines[] = "{$indent}{% set {$block} = {$expr}.eagerly().one() %}";
             $lines[] = "{$indent}{% if {$block} %}";
             $this->appendBlockBodies($lines, $entryTypes, $block, $depth, $variables, $ancestors);
             $lines[] = "{$indent}{% endif %}";
@@ -615,7 +615,7 @@ class Generator extends Component
 
         $block = $this->uniqueVariable(self::singular($field->handle) ?? 'block', $variables);
         $variables[] = $block;
-        $lines[] = "{$indent}{% for {$block} in {$expr}.all() %}";
+        $lines[] = "{$indent}{% for {$block} in {$expr}.eagerly().all() %}";
         $this->appendBlockBodies($lines, $entryTypes, $block, $depth, $variables, $ancestors);
         $lines[] = "{$indent}{% endfor %}";
     }
@@ -882,11 +882,11 @@ class Generator extends Component
 
         if ($field->maxRelations === 1) {
             $asset = $this->uniqueVariable($field->handle, $variables);
-            $lines[] = "{$indent}{% set {$asset} = {$expr}.one() %}";
+            $lines[] = "{$indent}{% set {$asset} = {$expr}.eagerly().one() %}";
             $lines[] = "{$indent}{% if {$asset} %}";
         } else {
             $asset = $this->uniqueVariable(self::singular($field->handle) ?? 'asset', $variables);
-            $lines[] = "{$indent}{% for {$asset} in {$expr}.all() %}";
+            $lines[] = "{$indent}{% for {$asset} in {$expr}.eagerly().all() %}";
         }
 
         $img = "<img src=\"{{ {$asset}.url }}\" alt=\"{{ {$asset}.alt ?? {$asset}.title }}\" width=\"{{ {$asset}.width }}\" height=\"{{ {$asset}.height }}\">";
@@ -921,7 +921,7 @@ class Generator extends Component
 
         if ($field->maxRelations === 1) {
             $related = $this->uniqueVariable($field->handle, $variables);
-            $lines[] = "{$indent}{% set {$related} = {$expr}.one() %}";
+            $lines[] = "{$indent}{% set {$related} = {$expr}.eagerly().one() %}";
             $lines[] = "{$indent}{% if {$related} %}";
             $lines[] = "{$indent}" . self::INDENT . '<p>' . $item($related) . '</p>';
             $lines[] = "{$indent}{% endif %}";
@@ -934,7 +934,7 @@ class Generator extends Component
         $variables[] = $list;
         $related = $this->uniqueVariable($singular ?? $noun, $variables);
 
-        $lines[] = "{$indent}{% set {$list} = {$expr}.all() %}";
+        $lines[] = "{$indent}{% set {$list} = {$expr}.eagerly().all() %}";
         $lines[] = "{$indent}{% if {$list}|length %}";
         $lines[] = "{$indent}" . self::INDENT . '<ul>';
         $lines[] = "{$indent}" . str_repeat(self::INDENT, 2) . "{% for {$related} in {$list} %}";

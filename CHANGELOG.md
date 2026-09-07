@@ -1,5 +1,11 @@
 # Release Notes for Twig Scaffold
 
+## 1.3.0 - Unreleased
+
+### Changed
+
+- **Relation and block queries are written with `.eagerly()`.** Assets, Entries, Categories, Tags, Users, Addresses, Matrix and Super Table queries now use Craft’s lazy eager-loading, so a relation rendered inside a block loop, or in a partial Craft renders with `render()`, is fetched for every block in at most two queries instead of one query per block. On the routed entry itself it is a no-op. Neo queries are unchanged, since Neo’s block query does not support `.eagerly()`.
+
 ## 1.2.0 - 2026-09-06
 
 ### Added
