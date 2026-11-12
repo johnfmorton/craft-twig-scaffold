@@ -2,6 +2,10 @@
 
 Copy for the Twig Scaffold listing in Craft Console. The screenshots in this folder are the listing images, in order.
 
+The Plugin Store doesn't read this file. Update it with each release, then paste the changed sections into Craft Console by hand.
+
+**Written for:** 1.4.0. **Live listing last checked:** 2026-11-12, when it still showed the 1.3.1 copy (no Craft 6 mention).
+
 ## Short description
 
 Generates a starter Twig template for any entry type from its field layout, blocks and all.
@@ -12,7 +16,7 @@ Templating, Development
 
 ## Keywords
 
-twig, template, scaffold, generator, matrix, neo, super table, field layout, boilerplate
+twig, template, scaffold, generator, matrix, neo, super table, field layout, boilerplate, craft 6
 
 ## Long description
 
@@ -29,10 +33,11 @@ Twig Scaffold writes the first draft of an entry template so you don’t have to
 - **Guards where they belong.** Optional fields are wrapped in `{% if %}` so empty values don’t leave empty tags behind. Dates, links and colors are always guarded.
 - **Eager loading built in.** Relation and block queries are written with `.eagerly()`, so a gallery inside a Matrix loop costs one query, not one per block.
 - **Plugin fields covered.** Built-in output for CKEditor, Redactor, Neo and Super Table, plus bundled renderers for Hyper, SEO, oEmbed, Maps, Table Maker, Code Field and Linkit. Any other field type gets a comment naming it, so nothing is dropped silently.
-- **Extensible.** Site developers map field classes to Twig in `config/twig-scaffold.php`. Plugin authors describe their own field types with a `twig-scaffold.php` file or an event.
+- **Extensible.** Site developers map field classes to Twig in `config/twig-scaffold.php` (`config/craft/twig-scaffold.php` on Craft 6). Plugin authors describe their own field types with a `twig-scaffold.php` file or an event.
+- **Craft 5 and Craft 6.** One release runs on both. On Craft 6 it works through Craft’s Yii2 adapter, and the generated templates are the same on either version.
 
 ## Who it’s for
 
 Developers starting a new section, or picking up a site with a large content model. The generated template is a starting point, not a finished design: it gives you working markup for every field on the first page load, and you take it from there.
 
-Requires Craft CMS 5.11 or later and PHP 8.2. Free and MIT licensed.
+Requires Craft CMS 5.11 or later with PHP 8.2, or Craft CMS 6 with PHP 8.5. Free and MIT licensed.
