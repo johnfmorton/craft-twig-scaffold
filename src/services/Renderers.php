@@ -45,6 +45,9 @@ class Renderers extends Component
     /** The file a plugin ships to describe its field types. */
     public const FILENAME = 'twig-scaffold.php';
 
+    private const NATIVE_FIELD_NAMESPACE = 'CraftCms\\Cms\\Field\\';
+    private const LEGACY_FIELD_NAMESPACE = 'craft\\fields\\';
+
     /**
      * The renderer files Twig Scaffold bundles for popular plugins, in
      * `src/renderers/<handle>.php`, mapped to the plugin's name for messages.
@@ -97,12 +100,12 @@ class Renderers extends Component
      * @param bool $required whether the field is required in its layout
      * @return array{twig: string[], guard: string|null, source: string}|array{error: string, source: string}|null
      */
-    public function resolve(FieldInterface $field, string $expression, string $element, bool $required): ?array
+    public function resolve(object $field, string $expression, string $element, bool $required): ?array
     {
         $this->loadRegistry();
 
         $entry = null;
-        foreach ([$field::class, ...array_values(class_parents($field))] as $class) {
+        foreach (self::lookupClasses($field) as $class) {
             $entry = $this->registry[strtolower($class)] ?? null;
             if ($entry !== null) {
                 break;
@@ -138,6 +141,30 @@ class Renderers extends Component
             'guard' => $guard === null ? null : strtr($guard, $placeholders),
             'source' => $entry['source'],
         ];
+    }
+
+    /**
+     * The class names a renderer may be registered under for this field, most
+     * specific first: the field's class and its parents.
+     *
+     * On Craft 6, built-in fields are `CraftCms\Cms\Field\*` objects with no
+     * `craft\fields\*` parent, so each of those is followed by its Craft 5
+     * name. A renderer registered for `craft\fields\PlainText` then still
+     * applies to Craft 6 Plain Text fields.
+     *
+     * @return string[]
+     */
+    private static function lookupClasses(object $field): array
+    {
+        $classes = [];
+        foreach ([$field::class, ...array_values(class_parents($field))] as $class) {
+            $classes[] = $class;
+            if (str_starts_with($class, self::NATIVE_FIELD_NAMESPACE)) {
+                $classes[] = self::LEGACY_FIELD_NAMESPACE . substr($class, strlen(self::NATIVE_FIELD_NAMESPACE));
+            }
+        }
+
+        return array_values(array_unique($classes));
     }
 
     /**

@@ -39,6 +39,7 @@ use craft\helpers\Html;
 use craft\models\EntryType;
 use craft\models\FieldLayout;
 use craft\models\Section;
+use johnfmorton\crafttwigscaffold\helpers\FieldTypes;
 use johnfmorton\crafttwigscaffold\TwigScaffold;
 use yii\base\Model;
 
@@ -307,7 +308,7 @@ class Generator extends Component
         foreach ($entryType->findUsages() as $usage) {
             if ($usage instanceof Section) {
                 $usages[] = $usage->name . ' (section)';
-            } elseif ($usage instanceof FieldInterface) {
+            } elseif (FieldTypes::isField($usage)) {
                 $usages[] = $usage->name . ' (' . $usage::displayName() . ' field)';
             }
         }
@@ -394,12 +395,12 @@ class Generator extends Component
      * @param string[] $variables
      * @param string[] $ancestors
      */
-    private function appendField(array &$lines, FieldInterface $field, bool $required, string $var, int $depth, array $variables, array $ancestors): void
+    private function appendField(array &$lines, object $field, bool $required, string $var, int $depth, array $variables, array $ancestors): void
     {
         $indent = str_repeat(self::INDENT, $depth);
         $expr = "{$var}.{$field->handle}";
 
-        if ($field instanceof MissingField) {
+        if (FieldTypes::is($field, MissingField::class)) {
             $lines[] = "{$indent}{# The field type \"" . self::comment($field->expectedType) . '" is not installed, so nothing was generated for this field. #}';
             return;
         }
@@ -417,12 +418,12 @@ class Generator extends Component
             }
         }
 
-        if ($field instanceof Matrix) {
+        if (FieldTypes::is($field, Matrix::class)) {
             $this->appendMatrix($lines, $field, $expr, $depth, $variables, $ancestors);
             return;
         }
 
-        if ($field instanceof ContentBlock) {
+        if (FieldTypes::is($field, ContentBlock::class)) {
             $this->appendContentBlock($lines, $field, $expr, $depth, $variables, $ancestors);
             return;
         }
@@ -432,17 +433,17 @@ class Generator extends Component
             return;
         }
 
-        if ($field instanceof Assets) {
+        if (FieldTypes::is($field, Assets::class)) {
             $this->appendAssets($lines, $field, $expr, $depth, $variables);
             return;
         }
 
-        if ($field instanceof BaseRelationField) {
+        if (FieldTypes::is($field, BaseRelationField::class)) {
             $this->appendRelations($lines, $field, $expr, $depth, $variables);
             return;
         }
 
-        if ($field instanceof Addresses) {
+        if (FieldTypes::is($field, Addresses::class)) {
             $address = $this->uniqueVariable(self::singular($field->handle) ?? 'address', $variables);
             $lines[] = "{$indent}{% for {$address} in {$expr}.eagerly().all() %}";
             $lines[] = "{$indent}" . self::INDENT . "{{ {$address}|address }}";
@@ -450,12 +451,12 @@ class Generator extends Component
             return;
         }
 
-        if ($field instanceof Table) {
+        if (FieldTypes::is($field, Table::class)) {
             $this->appendTable($lines, $field, $expr, $required, $depth, $variables);
             return;
         }
 
-        if ($field instanceof BaseOptionsField) {
+        if (FieldTypes::is($field, BaseOptionsField::class)) {
             if (str_contains($field::phpType(), 'MultiOptionsFieldData')) {
                 $option = $this->uniqueVariable('option', $variables);
                 $this->appendGuarded($lines, $indent, $required ? null : "{$expr}|length", [
@@ -473,12 +474,12 @@ class Generator extends Component
             return;
         }
 
-        if ($field instanceof Lightswitch) {
+        if (FieldTypes::is($field, Lightswitch::class)) {
             $this->appendToggle($lines, $indent, $expr, $field->onLabel ?: $field->name, $field->offLabel);
             return;
         }
 
-        if ($field instanceof Date || $field instanceof Time) {
+        if (FieldTypes::is($field, Date::class) || FieldTypes::is($field, Time::class)) {
             // A null date must be guarded even when the field is required:
             // Twig's date filters treat null as "now".
             $this->appendGuarded($lines, $indent, $expr, [$this->timeTag($field, $expr)]);
@@ -500,7 +501,7 @@ class Generator extends Component
      *
      * @return array{0: string[]|null, 1: string|null}
      */
-    private function scalar(FieldInterface $field, string $expr, bool $required): array
+    private function scalar(object $field, string $expr, bool $required): array
     {
         $ifBlank = $required ? null : $expr;
 
@@ -514,52 +515,52 @@ class Generator extends Component
             return [$lines, null];
         }
 
-        if ($field instanceof PlainText) {
+        if (FieldTypes::is($field, PlainText::class)) {
             return [["<p>{{ {$expr}" . ($field->multiline ? '|nl2br' : '') . ' }}</p>'], $ifBlank];
         }
 
-        if ($field instanceof Number) {
+        if (FieldTypes::is($field, Number::class)) {
             $prefix = $field->prefix !== null ? Html::encode($field->prefix) : '';
             $suffix = $field->suffix !== null ? Html::encode($field->suffix) : '';
             return [["<p>{$prefix}{{ {$expr} }}{$suffix}</p>"], $required ? null : "{$expr} is not null"];
         }
 
-        if ($field instanceof Range) {
+        if (FieldTypes::is($field, Range::class)) {
             $suffix = $field->suffix !== null ? Html::encode($field->suffix) : '';
             return [["<p>{{ {$expr} }}{$suffix}</p>"], $required ? null : "{$expr} is not null"];
         }
 
-        if ($field instanceof Url) {
+        if (FieldTypes::is($field, Url::class)) {
             return [["<a href=\"{{ {$expr} }}\">{{ {$expr} }}</a>"], $ifBlank];
         }
 
-        if ($field instanceof Email) {
+        if (FieldTypes::is($field, Email::class)) {
             return [["<a href=\"mailto:{{ {$expr} }}\">{{ {$expr} }}</a>"], $ifBlank];
         }
 
         // The rest are value objects: reading a property of a null value is an
         // error, so they are always guarded.
-        if ($field instanceof Link) {
+        if (FieldTypes::is($field, Link::class)) {
             return [["<a href=\"{{ {$expr}.url }}\">{{ {$expr}.label }}</a>"], $expr];
         }
 
-        if ($field instanceof Color) {
+        if (FieldTypes::is($field, Color::class)) {
             return [["<p style=\"color: {{ {$expr}.hex }}\">{{ {$expr}.hex }}</p>"], $expr];
         }
 
-        if ($field instanceof Country) {
+        if (FieldTypes::is($field, Country::class)) {
             return [["<p>{{ {$expr}.name }}</p>"], $expr];
         }
 
-        if ($field instanceof Money) {
+        if (FieldTypes::is($field, Money::class)) {
             return [["<p>{{ {$expr}|money }}</p>"], $expr];
         }
 
-        if ($field instanceof Icon) {
+        if (FieldTypes::is($field, Icon::class)) {
             return [["<p>{{ {$expr} }}</p> {# the icon's name #}"], $expr];
         }
 
-        if ($field instanceof Json) {
+        if (FieldTypes::is($field, Json::class)) {
             return [["<pre>{{ {$expr}.json(true) }}</pre>"], $expr];
         }
 
@@ -580,7 +581,7 @@ class Generator extends Component
      * @param string[] $variables
      * @param string[] $ancestors
      */
-    private function appendMatrix(array &$lines, Matrix $field, string $expr, int $depth, array $variables, array $ancestors): void
+    private function appendMatrix(array &$lines, object $field, string $expr, int $depth, array $variables, array $ancestors): void
     {
         $indent = str_repeat(self::INDENT, $depth);
         $entryTypes = $field->getEntryTypes();
@@ -668,7 +669,7 @@ class Generator extends Component
      * @param string[] $variables
      * @param string[] $ancestors
      */
-    private function appendContentBlock(array &$lines, ContentBlock $field, string $expr, int $depth, array $variables, array $ancestors): void
+    private function appendContentBlock(array &$lines, object $field, string $expr, int $depth, array $variables, array $ancestors): void
     {
         $indent = str_repeat(self::INDENT, $depth);
 
@@ -875,7 +876,7 @@ class Generator extends Component
      * @param string[] $lines
      * @param string[] $variables
      */
-    private function appendAssets(array &$lines, Assets $field, string $expr, int $depth, array $variables): void
+    private function appendAssets(array &$lines, object $field, string $expr, int $depth, array $variables): void
     {
         $indent = str_repeat(self::INDENT, $depth);
         $imagesOnly = $field->restrictFiles && array_values($field->allowedKinds ?? []) === ['image'];
@@ -907,15 +908,15 @@ class Generator extends Component
      * @param string[] $lines
      * @param string[] $variables
      */
-    private function appendRelations(array &$lines, BaseRelationField $field, string $expr, int $depth, array $variables): void
+    private function appendRelations(array &$lines, object $field, string $expr, int $depth, array $variables): void
     {
         $indent = str_repeat(self::INDENT, $depth);
 
         [$noun, $item] = match (true) {
-            $field instanceof Users => ['user', fn(string $v) => "{{ {$v}.fullName ?: {$v}.username }}"],
-            $field instanceof Tags => ['tag', fn(string $v) => "{{ {$v}.title }}"],
-            $field instanceof Categories => ['category', fn(string $v) => "<a href=\"{{ {$v}.url }}\">{{ {$v}.title }}</a>"],
-            $field instanceof Entries => ['relatedEntry', fn(string $v) => "<a href=\"{{ {$v}.url }}\">{{ {$v}.title }}</a>"],
+            FieldTypes::is($field, Users::class) => ['user', fn(string $v) => "{{ {$v}.fullName ?: {$v}.username }}"],
+            FieldTypes::is($field, Tags::class) => ['tag', fn(string $v) => "{{ {$v}.title }}"],
+            FieldTypes::is($field, Categories::class) => ['category', fn(string $v) => "<a href=\"{{ {$v}.url }}\">{{ {$v}.title }}</a>"],
+            FieldTypes::is($field, Entries::class) => ['relatedEntry', fn(string $v) => "<a href=\"{{ {$v}.url }}\">{{ {$v}.title }}</a>"],
             default => ['item', fn(string $v) => "<a href=\"{{ {$v}.url }}\">{{ {$v}.title }}</a>"],
         };
 
@@ -948,7 +949,7 @@ class Generator extends Component
      * @param string[] $lines
      * @param string[] $variables
      */
-    private function appendTable(array &$lines, Table $field, string $expr, bool $required, int $depth, array $variables): void
+    private function appendTable(array &$lines, object $field, string $expr, bool $required, int $depth, array $variables): void
     {
         $indent = str_repeat(self::INDENT, $depth);
         $row = $this->uniqueVariable('row', $variables);
@@ -1011,9 +1012,9 @@ class Generator extends Component
         $lines[] = "{$indent}{% endif %}";
     }
 
-    private function timeTag(Date|Time $field, string $expr): string
+    private function timeTag(object $field, string $expr): string
     {
-        if ($field instanceof Time || !$field->showDate) {
+        if (FieldTypes::is($field, Time::class) || !$field->showDate) {
             return "<time datetime=\"{{ {$expr}|date('H:i') }}\">{{ {$expr}|time('short') }}</time>";
         }
         if ($field->showTime) {
@@ -1110,7 +1111,7 @@ class Generator extends Component
      * Whether the field is a CKEditor or Redactor field (or anything else built
      * on the html-field package), without requiring that package.
      */
-    private static function isHtmlField(FieldInterface $field): bool
+    private static function isHtmlField(object $field): bool
     {
         return is_a($field, self::HTML_FIELD_CLASS);
     }
