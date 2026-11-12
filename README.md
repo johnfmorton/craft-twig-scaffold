@@ -1,12 +1,14 @@
 # Twig Scaffold
 
-Twig Scaffold is a control panel utility for Craft CMS 5 that writes a starter Twig template for any entry type, straight from its field layout. Pick an entry type, click **Generate Twig**, copy the result into your templates folder, and edit from there.
+Twig Scaffold is a control panel utility for Craft CMS 5 and 6 that writes a starter Twig template for any entry type, straight from its field layout. Pick an entry type, click **Generate Twig**, copy the result into your templates folder, and edit from there.
 
 It exists to skip the tedious part of templating: typing out every field handle, every Matrix loop, and every block-type branch before you can see anything on the page. The generated template is a starting point, not a finished design.
 
 ## Requirements
 
-This plugin requires Craft CMS 5.11.0 or later, and PHP 8.2 or later.
+This plugin requires Craft CMS 5.11.0 or later on PHP 8.2 or later, or Craft CMS 6 on PHP 8.5 or later.
+
+On Craft 6, Twig Scaffold runs through Craft's [Yii2 adapter](https://craftcms.com/docs/6.x/extend/adapter.html). Twig Scaffold suggests the `craftcms/yii2-adapter` package rather than requiring it, so the same release installs on Craft 5. The Plugin Store and Craft's upgrade tool add the adapter for you; with Composer, require it yourself (see below).
 
 ## Installation
 
@@ -23,6 +25,13 @@ composer require johnfmorton/craft-twig-scaffold
 
 # tell Craft to install the plugin
 ./craft plugin/install twig-scaffold
+```
+
+On Craft 6, require the adapter too if your project doesn't already have it, and install the plugin with Artisan:
+
+```bash
+composer require johnfmorton/craft-twig-scaffold craftcms/yii2-adapter
+php artisan craft:plugin:install twig-scaffold
 ```
 
 Once the plugin is listed in the Plugin Store, you will also be able to go to the Plugin Store in your project’s control panel, search for “Twig Scaffold”, and press “Install”.
@@ -99,7 +108,7 @@ Both plugin developers and site developers can fix that.
 
 ### Site developers: `config/twig-scaffold.php`
 
-Create `config/twig-scaffold.php` in your project, mapping field classes to the Twig you want generated for them. `$value` stands for the expression that reaches the field's value:
+Create `config/twig-scaffold.php` in your project (`config/craft/twig-scaffold.php` on Craft 6, where Craft's config files live), mapping field classes to the Twig you want generated for them. `$value` stands for the expression that reaches the field's value:
 
 ```php
 <?php
@@ -123,6 +132,8 @@ return [
 ```
 
 This file has the last word: it overrides renderers shipped by plugins, the ones Twig Scaffold bundles, and its built-in output for Craft's own fields. The full format, including closures for settings-dependent output and the `$element`, `$handle`, and `$label` placeholders, is documented in [INTEGRATION.md](INTEGRATION.md).
+
+On Craft 6, Craft's own field types are `CraftCms\Cms\Field\*` classes. Renderers keyed by the Craft 5 names (`craft\fields\Assets` and so on) still apply to them, so one config file works on both versions.
 
 ### Plugin developers: add Twig Scaffold support to your plugin
 

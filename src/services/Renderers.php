@@ -8,6 +8,7 @@ use craft\base\Component;
 use craft\base\FieldInterface;
 use craft\helpers\Html;
 use johnfmorton\crafttwigscaffold\events\RegisterFieldRenderersEvent;
+use johnfmorton\crafttwigscaffold\helpers\FieldTypes;
 use Throwable;
 
 /**
@@ -24,7 +25,7 @@ use Throwable;
  * 2. A `twig-scaffold.php` file shipped in an installed plugin's `src/`
  *    folder (or its repo root).
  * 3. Handlers of the {@see self::EVENT_REGISTER_FIELD_RENDERERS} event.
- * 4. The site's own `config/twig-scaffold.php`.
+ * 4. The site's own `config/twig-scaffold.php` (`config/craft/` on Craft 6).
  *
  * Every source uses the same shape: an array mapping a field class name to a
  * renderer, which is a Twig string, a list of Twig lines, an array with `twig`
@@ -259,7 +260,7 @@ class Renderers extends Component
 
         $config = Craft::$app->getConfig()->getConfigFromFile('twig-scaffold');
         if (is_array($config) && $config !== []) {
-            $this->registerAll($config, 'config/' . self::FILENAME);
+            $this->registerAll($config, (FieldTypes::isCraft6() ? 'config/craft/' : 'config/') . self::FILENAME);
         }
     }
 

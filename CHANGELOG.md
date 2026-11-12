@@ -1,5 +1,16 @@
 # Release Notes for Twig Scaffold
 
+## 1.4.0 - 2026-11-12
+
+### Added
+
+- **Craft CMS 6 support.** Twig Scaffold now installs on Craft 6 (beta) as well as Craft 5.11+, from the same release. On Craft 6 it runs through Craft's Yii2 adapter, which it suggests rather than requires so Craft 5 projects are unaffected. Every built-in field type is recognized on Craft 6, where Craft's fields are `CraftCms\Cms\Field\*` classes, and generated templates match those on Craft 5.
+- Renderers registered under Craft 5 field class names (`craft\fields\PlainText` and so on) also apply to the matching Craft 6 field types, so one `twig-scaffold.php` config works on both versions.
+
+### Changed
+
+- On Craft 6 the site-level renderer file is `config/craft/twig-scaffold.php`, where Craft 6 keeps its config files. On Craft 5 it is still `config/twig-scaffold.php`.
+
 ## 1.3.1 - 2026-09-07
 
 ### Changed

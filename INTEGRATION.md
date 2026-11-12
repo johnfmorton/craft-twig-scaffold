@@ -1,6 +1,6 @@
 # Adding Twig Scaffold support to your plugin
 
-[Twig Scaffold](https://github.com/johnfmorton/craft-twig-scaffold) is a Craft CMS 5 control panel utility that writes a starter Twig template for an entry type from its field layout. It knows how to render every field type that ships with Craft, plus CKEditor, Redactor, Neo and Super Table, and it bundles starter renderers for Hyper, SEO, oEmbed, Maps, Table Maker, Code Field, and Linkit. For a field type from any other plugin, all it can write is a comment:
+[Twig Scaffold](https://github.com/johnfmorton/craft-twig-scaffold) is a Craft CMS 5 and 6 control panel utility that writes a starter Twig template for an entry type from its field layout. It knows how to render every field type that ships with Craft, plus CKEditor, Redactor, Neo and Super Table, and it bundles starter renderers for Hyper, SEO, oEmbed, Maps, Table Maker, Code Field, and Linkit. For a field type from any other plugin, all it can write is a comment:
 
 ```twig
 {# Podcast Audio (Podcast Audio Field) #}
@@ -284,7 +284,7 @@ The file is the recommended route for plugins that own a field type. Two other r
   });
   ```
 
-- **A site-level file**, `config/twig-scaffold.php` in the Craft project, for site developers. It can describe field types whose plugins don't ship a file, and it can override any renderer, including Twig Scaffold's built-in ones for Craft's own fields. It supports Craft's multi-environment config keys (`'*'`, `'dev'`, and so on) like any other file in `config/`.
+- **A site-level file**, `config/twig-scaffold.php` in the Craft project (`config/craft/twig-scaffold.php` on Craft 6), for site developers. It can describe field types whose plugins don't ship a file, and it can override any renderer, including Twig Scaffold's built-in ones for Craft's own fields. It supports Craft's multi-environment config keys (`'*'`, `'dev'`, and so on) like any other file in `config/`.
 
 Precedence, lowest to highest: Twig Scaffold's built-in output, the renderers Twig Scaffold bundles for popular plugins, plugin `twig-scaffold.php` files, event handlers, the site's `config/twig-scaffold.php`. Within that, the most specific class match wins: a renderer for a subclass beats one for its parent, wherever each was registered.
 
@@ -326,4 +326,4 @@ return [
 
 Placeholders in `twig` and `guard`: `$value`, `$element`, `$handle`, `$label`.
 
-Requirements: the same as Twig Scaffold, Craft CMS 5.11 or later on PHP 8.2 or later. Your plugin does not need to require Twig Scaffold.
+Requirements: the same as Twig Scaffold, Craft CMS 5.11 or later on PHP 8.2 or later, or Craft CMS 6 on PHP 8.5 or later. Your plugin does not need to require Twig Scaffold.
