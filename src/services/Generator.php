@@ -268,7 +268,7 @@ class Generator extends Component
                     if (!str_contains(basename($template), '.')) {
                         $template .= '.twig';
                     }
-                    return "templates/$template";
+                    return self::templatesDir() . "/$template";
                 }
             }
         }
@@ -291,12 +291,35 @@ class Generator extends Component
      */
     private function partialPathFor(string $refHandle, string $providerHandle): string
     {
-        return sprintf(
-            'templates/%s/%s/%s.twig',
-            trim(Craft::$app->getConfig()->getGeneral()->partialTemplatesPath, '/'),
-            $refHandle,
-            $providerHandle,
-        );
+        return sprintf('%s/%s/%s.twig', $this->partialsDir(), $refHandle, $providerHandle);
+    }
+
+    /**
+     * The folder partial templates live in, relative to the project root:
+     * `templates/_partials` on a default Craft 5 install,
+     * `resources/views/_partials` on Craft 6.
+     */
+    public function partialsDir(): string
+    {
+        return self::templatesDir() . '/' . trim(Craft::$app->getConfig()->getGeneral()->partialTemplatesPath, '/');
+    }
+
+    /**
+     * The site templates folder relative to the project root, from Craft's
+     * `@templates` alias: `templates` on a default Craft 5 install,
+     * `resources/views` on Craft 6. Falls back to `templates` when the folder
+     * isn't inside the project.
+     */
+    private static function templatesDir(): string
+    {
+        $root = rtrim((string)Craft::getAlias('@root'), '/');
+        $templates = rtrim((string)Craft::getAlias('@templates'), '/');
+
+        if ($root !== '' && str_starts_with($templates, $root . '/')) {
+            return substr($templates, strlen($root) + 1);
+        }
+
+        return 'templates';
     }
 
     /**
@@ -509,7 +532,7 @@ class Generator extends Component
             $lines = [];
             if ($field instanceof ElementContainerFieldInterface && $field->getFieldLayoutProviders() !== []) {
                 $lines[] = '{# Entries nested in this field render with their partial templates: '
-                    . 'templates/' . trim(Craft::$app->getConfig()->getGeneral()->partialTemplatesPath, '/') . '/entry/<entryTypeHandle>.twig #}';
+                    . $this->partialsDir() . '/entry/<entryTypeHandle>.twig #}';
             }
             $lines[] = "{{ {$expr} }}";
             return [$lines, null];

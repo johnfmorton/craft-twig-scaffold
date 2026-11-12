@@ -41,7 +41,7 @@ Once the plugin is listed in the Plugin Store, you will also be able to go to th
 1. In the control panel, go to **Utilities → Twig Scaffold**.
 2. Choose an entry type. They are grouped by section; entry types that only exist inside Matrix or CKEditor fields are listed under **Nested entry types**.
 3. Choose how Matrix fields should be written (see below) and click **Generate Twig**.
-4. Click **Copy to clipboard** and paste the template into your `templates/` folder. The utility suggests a location: the section’s template setting, or the partial template path for a nested entry type.
+4. Click **Copy to clipboard** and paste the template into your templates folder (`templates/`, or `resources/views/` on Craft 6). The utility suggests a location: the section’s template setting, or the partial template path for a nested entry type. Suggested paths start from your project’s actual templates folder.
 
 The entry is available in the template as `entry`, which is what Craft provides in section templates and in partial templates rendered with `render()`.
 
@@ -79,7 +79,7 @@ Every Assets, Entries, Categories, Tags, Users, Addresses, Matrix and Super Tabl
 ### Block fields: inline loops or partial templates
 
 - **Inline loops** (the default) writes everything into one template: a `{% for %}` loop for each Matrix, Super Table or Neo field, a `{% switch %}` on `block.type.handle` when the field has more than one block type, and the same again for block fields nested inside blocks. An entry type or Neo block type that contains itself is cut off with a comment rather than looping forever.
-- **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead. Craft then renders each block with its own partial template: `templates/_partials/entry/<entryTypeHandle>.twig` for Matrix and Super Table blocks, and `templates/_partials/neoblock/<blockTypeHandle>.twig` for Neo blocks (the folder follows your `partialTemplatesPath` config setting). The utility writes those partials too: below the main template it lists a starter for every partial it relies on, each with its path, the variable the block is available as (`entry` or `neoblock`), and a copy button. Partials that need partials of their own, such as a Neo block type with child blocks or a Matrix field inside a block, are included as well. To regenerate a single Matrix or Super Table partial later, pick its entry type under **Nested entry types**.
+- **Partial templates** writes `{{ entry.myMatrixField.render() }}` instead. Craft then renders each block with its own partial template: `templates/_partials/entry/<entryTypeHandle>.twig` for Matrix and Super Table blocks, and `templates/_partials/neoblock/<blockTypeHandle>.twig` for Neo blocks (under `resources/views/` on Craft 6; the `_partials` folder follows your `partialTemplatesPath` config setting). The utility writes those partials too: below the main template it lists a starter for every partial it relies on, each with its path, the variable the block is available as (`entry` or `neoblock`), and a copy button. Partials that need partials of their own, such as a Neo block type with child blocks or a Matrix field inside a block, are included as well. To regenerate a single Matrix or Super Table partial later, pick its entry type under **Nested entry types**.
 
 ## Custom field types
 

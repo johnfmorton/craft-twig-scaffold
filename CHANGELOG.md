@@ -1,5 +1,11 @@
 # Release Notes for Twig Scaffold
 
+## 1.4.1 - 2026-11-12
+
+### Fixed
+
+- **Suggested template paths point at the right folder on Craft 6.** Paths were always written as `templates/…`, but Craft 6 keeps site templates in `resources/views/`. Suggested locations, partial template paths, the comment above a CKEditor field with nested entries, and the utility's help text now start from the project's real templates folder (Craft's `@templates` alias), so a custom templates path on Craft 5 is respected too. Default Craft 5 installs see no change.
+
 ## 1.4.0 - 2026-11-12
 
 ### Added

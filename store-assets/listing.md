@@ -4,7 +4,9 @@ Copy for the Twig Scaffold listing in Craft Console. The screenshots in this fol
 
 The Plugin Store doesn't read this file. Update it with each release, then paste the changed sections into Craft Console by hand.
 
-**Written for:** 1.4.0. **Live listing last checked:** 2026-11-12, when it still showed the 1.3.1 copy (no Craft 6 mention).
+**Written for:** 1.4.1. **Live listing last checked:** 2026-11-12, when it still showed the 1.3.1 copy (no Craft 6 mention).
+
+**Changed since the live copy:** the 1.4.0 Craft 6 edits (Extensible bullet, new "Craft 5 and Craft 6" bullet, requirements line, `craft 6` keyword) and, in 1.4.1, "your `templates/` folder" → "your templates folder" in the first paragraph.
 
 ## Short description
 
@@ -24,7 +26,7 @@ Everything below the rule is the Markdown for the long description field.
 
 ---
 
-Twig Scaffold writes the first draft of an entry template so you don’t have to. Pick an entry type in **Utilities → Twig Scaffold**, click **Generate Twig**, and copy a template that already renders every field in the layout: text, images, relations, dates, options, tables, and Matrix, Neo and Super Table blocks nested as deep as your content model goes. Paste it into your `templates/` folder and start designing instead of typing field handles.
+Twig Scaffold writes the first draft of an entry template so you don’t have to. Pick an entry type in **Utilities → Twig Scaffold**, click **Generate Twig**, and copy a template that already renders every field in the layout: text, images, relations, dates, options, tables, and Matrix, Neo and Super Table blocks nested as deep as your content model goes. Paste it into your templates folder and start designing instead of typing field handles.
 
 ## What you get
 

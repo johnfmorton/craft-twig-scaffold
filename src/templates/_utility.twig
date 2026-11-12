@@ -20,7 +20,7 @@
         <div data-twig-scaffold-matrix-mode>
             {{ forms.radioGroupField({
                 label: 'Block fields'|t('twig-scaffold'),
-                instructions: 'Matrix mode instructions'|t('twig-scaffold'),
+                instructions: 'Matrix mode instructions'|t('twig-scaffold')|replace({ 'templates/_partials/': partialsDir ~ '/' }),
                 id: 'twig-scaffold-matrix-mode',
                 name: 'matrixMode',
                 options: [

@@ -6,6 +6,7 @@ use Craft;
 use craft\base\ElementContainerFieldInterface;
 use craft\base\Utility;
 use craft\models\EntryType;
+use johnfmorton\crafttwigscaffold\TwigScaffold;
 
 /**
  * Twig Scaffold utility: pick an entry type, get a starter template.
@@ -31,6 +32,8 @@ class TwigScaffoldUtility extends Utility
     {
         return Craft::$app->getView()->renderTemplate('twig-scaffold/_utility.twig', [
             'entryTypeOptions' => self::entryTypeOptions(),
+            // Where partials live in this project (resources/views/_partials on Craft 6).
+            'partialsDir' => TwigScaffold::getInstance()->generator->partialsDir(),
         ]);
     }
 
